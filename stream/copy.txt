@@ -1,0 +1,88 @@
+original.txtImperfect/incomplete knowledge
+How do modern static type systems deal with imperfect knowledge? For instance, do they require that you declare the type of all values before you can use them? Can you change your mind about the type of a value? Can you disagree with (and override) the type of a value passed to you from someone else's code? I agree that being able to automatically validate my use of values could be useful at times. But this should be optional.
+I've found myself at odds with assumptions made in third party code on several occassions. If these assumptions are embedded into a type system which the compiler forces me to conform to, it becomes more of a hindrance than a help. But I admit, these experiences have mostly been with Java, so I have incomplete knowledge on the workings of modern type systems. So, how do modern type systems address these concerns?
+By Neil Madden at Thu, 2004-07-15 20:09 | login or register to post comments
+Re: Imperfect/incomplete knowledge
+Before I answer this, I want to make clear that I'm not arguing that fully static type systems are a perfect answer which involves no sacrifices. Luke's request was about type systems, not statically-typed languages. I don't know if that was intentional, but I think it's a good point to focus on, because type systems are relevant to any language, whether or not it has explicit type annotations or static checking. That said:
+How do modern static type systems deal with imperfect knowledge? For instance, do they require that you declare the type of all values before you can use them?
+The most obvious answer to that is to point out that modern static type systems use type inference, so that you don't have to declare the types of all values. In fact, being required to explicitly declare the type of a value is usually the exception, not the rule. If you've never seen this in action, I'll give an example -- in SML, you might define a string length function as follows:
+fun strlen s = length (explode s);
+This converts the string to a list of characters using explode, and then finds the length of the resulting list. When you type the above function at the SML prompt (pun intended!) the system will respond by displaying the type of the function you've just defined:
+val strlen = fn : string -> int
+IOW, strlen is a function which accepts a string and returns an integer. SML knows this because it knows that the type of explode is string -> char list, and it knows the type of length is 'a list -> int, where 'a represents a type parameter, i.e. length accepts a homogenous list of any single type of value. Given these two types, it's easy for the system to figure out the type of strlen as string -> int.
+Entire programs are typed like this, without necessarily requiring a single explicit type annotation. But they're also checked for consistency, which means if you have imperfect knowledge about the types in your program, by the time you've gotten it to compile successfully under a statically-typed language, your knowledge will be perfect. ;)
+Can you change your mind about the type of a value?
+What's in your mind about the type of a value can be rather irrelevant in an inferencing type system - the system can figure out what the type should be, and if it's not consistent with the rest of the program, it'll tell you.
+Can you disagree with (and override) the type of a value passed to you from someone else's code?
+The question doesn't really arise, in that no-one can call your code unless they provide values of the proper types, which is mostly determined and enforced statically.
+I agree that being able to automatically validate my use of values could be useful at times. But this should be optional.
+Do you mean optional to do it statically? After all, even dynamically-typed languages generate type errors if a value is misused at runtime. Type-checking in some form is not optional, in any language. If you're saying it should be optional as to whether it occurs statically, i.e. at compile time, that raises the question of why. Are their cases where you need to perform an operation on a value without knowing for sure that the operation is valid on that value? If you know an operation is valid on a particular value, then you know something about that value's type. You may only know its interface or, in Haskell terms, its typeclass, but that's enough for a type system to go on.
+As I mentioned in my earlier post, fully static typesystems, like those in Haskell and ML, do impose constraints: there are programs that will run successfully in a dynamically-typed language, that won't even typecheck statically. That can be a good thing: many poorly designed programs won't typecheck, if they don't use types well. But it can also be a limitation, when you want to do something that confuses a static typechecker.
+An interesting area is soft typing, in which programs with few or no type annotations are analyzed, and the types of their terms inferenced. Such systems don't stop you from trying to run the program, but depending on what they find, you may think twice about running it anyway. This gives you a kind of optional typing. PLT Scheme has a couple of systems which support this, MrSpidey and MrFlow. Frank also mentioned a soft typing system for Erlang the other day.
+In software systems, it's almost always of benefit to be able to factor systems into naturally separate components, and the type scheme of a program is one such component, which is very naturally orthogonal to the rest of a program's semantics. In a sense, a program's type scheme is the framework within which the program runs, even in DT programs. If you don't have a good language with which to describe the type scheme, think about it, and manipulate it, you're at a disadvantage. That, of course, is why it's common to annotate functions with their types, even if it has to be done in comments in a DT language.
+By Anton van Straaten at Fri, 2004-07-16 02:21 | login or register to post comments
+No contraints
+fully static typesystems, like those in Haskell and ML, do impose constraints: there are programs that will run successfully in a dynamically-typed language, that won't even typecheck statically.
+If I run a Haskell program through a Scheme compiler, and vice versa, I will almost certainly get a syntax error, so I assume you have some translation in mind. Further, I venture to guess it is a translation which involves mapping lambda to backslash and so on.
+But this omits the types, and a Haskell program is not an untyped program, it is a typed program abbreviated by letting the type inferencer reconstruct the types, a process which is deterministic in the sense that each term has a unique principal type. So the types are part and parcel of the program, and we should rather compare the type-annotated version of a Haskell source program with a Scheme program.
+How to do this is not obvious. You have at least two choices.
+First, you can erase the types. Of course, this amounts to saying that the types are pointless in the first place, so it is inherently biased to the DT assumption that all that matters about a program is what it does at run-time. (If types are used at run-time, as for example in eta-expansion/reduction, it is also wrong.) This is like doing complex arithmetic with a conventional calculator, by ignoring the imaginary part of a number; it only gives you half the answer, and to say otherwise is to disavow the significance of imaginary numbers.
+A second option try to preserve the types. This involves finding an embedding of typed programs in untyped programs, and vice versa. Finding an embedding of untyped programs in typed programs is very easy: you just define a universal type, and I have shown several times how to do it. Finding an embedding of typed programs in untyped programs is not easy, and I strongly suspect it is impossible. To get a result, I think one needs to admit a weaker notion of `embedding', and effectively stage the run-time behavior so that there is an early stage corresponding to static checking and a late one corresponding to `actual' run-time. And then what have you got? It's just a typed language again.
+So there is no magic in dynamic typing, and no advantage. Furthermore, given the fact that every untyped program is a typed program of a universal type Univ, there are no limitations associated with static typing. In fact, inasmuch as it is harder to design and write a static type checker/inferencer than it is to design and write Univ, static typing saves work.
+I've said it before and I will say it again, until people stop repeating the party line and start using their brains.
+Static typing is superior to dynamic typing in every way.
+Static typing imposes no limitations.
+A typed program is not an untyped program.
+In a language without type inference, erasing types erases information.
+A program is not its run-time behavior, and software development activities (designing, analyzing, transforming, refactoring, debugging and optimizing programs) are all static activities.
+By Frank Atanassow at Fri, 2004-07-16 11:36 | login or register to post comments
+Re: No constraints
+Would you care to relate those comments to the development of computer programs using currently available tools?
+In isolation what you say is no more satisfying than "all turing-complete languages are the same." In some sense they're the same, and in some sense static types are superior, but in what sense is this meaningful to a programmer?
+By Luke Gorrie at Fri, 2004-07-16 12:53 | login or register to post comments
+Type examples
+Would you care to relate those comments to the development of computer programs using currently available tools?
+The only tool you need is the one between your ears. Here are some examples.
+If your compiler tells you that a value M has type T then you know immediately the operations which can be applied to it.
+You also know some, and sometimes, all of the laws that M satisfies. For example, if M has type A * B then in ML you know that:
+(#1 M, #2 M) = M
+And if M has type 'a -> 'b, then you know (by parametricity) that, for any relation P, if P(x,y) then P(M x, M y).
+Furthermore, often you can `guess' the meaning of a value by looking at the type. What do you think M is/does/means if it has one of the following (principal) types?
+string -> int
+file_descriptor -> string -> unit
+('a -> 'b) -> 'a list -> 'b list
+'a -> int -> 'a list
+('a -> 'a) -> 'a
+'a -> 'a
+('b -> 'c) * ('a -> 'b) -> ('a -> 'c)
+Sure, your guess may be wrong (except the last two—there is only one possibility), but it narrows down the possibilities and tells you what to look for in the code to confirm your guess.
+Conversely, if you are writing a program and you have determined that it must have type T then you know immediately the operations which construct it. You know, for example, that if you want to write a term of type A -> B -> C * D then you only need to fill in the blanks in:
+fn a => fn b =>
+  let val c = ___
+      val d = ___
+  in (c,d) end
+because every value of that type is expressible in that form.
+By Frank Atanassow at Fri, 2004-07-16 16:47 | login or register to post comments
+Speaking of tools...
+Continuing on with tools, do you claim the IDE should autogenerate
+fn a => fn b =>
+  let val c = ___
+      val d = ___
+  in (c,d) end
+for you, given A -> B -> C * D? Essentially then, you are proposing a sublanguage which may generate common patterns of code. (And even more information may help things along.) Is this a correct inference, or am I completely mistaken?
+By Tayssir John Gabbour at Sun, 2004-07-18 11:47 | login or register to post comments
+Re: Speaking of tools...
+It would be nice if it were an option, yes (though this has little to do with static typing).
+Often there is a shorter or more natural way to write a definition. For example if I want to implement add2 : int -> int I can write:
+add2 = fn n => n + 2
+or
+add2 = twice add1
+Of course, the latter is equal to:
+add2 = fn n => (twice add1) n 
+which is equal to the first definition by eta-compatibility.
+I want the option to be able to write either, and then select an expression, click "eta-expand" or "eta-reduce" and get the other. Similarly for beta-compatibility, and all the other equational axioms. And I want the ability to define "tactics" like fusion, promotion, deforestation and so on by combining axioms into laws. In short, I want to be able to manipulate my program in every way which is sound according to its semantics.
+I wouldn't call this "code autogeneration", but rather program transformation.
+To see an example of this sort of thing, look at pi-RED/KiR.
+By Frank Atanassow at Sun, 2004-07-18 13:41 | login or register to post comments
+Nitpicking
+There is not only one possible value of the types

@@ -21,5 +21,5 @@
 		- 但是Content-length 应是字节长度而不是字符长度，不应该简单使用length
 	    - node提供了 Buffer.byteLength
 	
-- watche-file 简单的监视文件变化，并转移到相应目录下，学习读取文件、事件监听及自定义事件
+- watche-file 简单的监视文件变化，并转移到相应目录下，学习读取文件、事件监听及自定义事件。
 
